@@ -4,9 +4,9 @@ package org.robotlegs.core
 	
     public interface ISignalCommandMap
     {
-        function mapSignal(signal:ISignal, commandClass:Class, oneShot:Boolean = false):void;
+        function mapSignal(signal:ISignal, commandClass:Class, oneShot:Boolean = false, argumentNames:Array = null):void;
 
-        function mapSignalClass(signalClass:Class, commandClass:Class, oneShot:Boolean = false):ISignal;
+        function mapSignalClass(signalClass:Class, commandClass:Class, oneShot:Boolean = false, argumentNames:Array = null):ISignal;
 
         function hasSignalCommand(signal:ISignal, commandClass:Class):Boolean;
 

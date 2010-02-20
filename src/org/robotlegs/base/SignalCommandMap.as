@@ -1,12 +1,9 @@
 package org.robotlegs.base
 {
     import flash.utils.Dictionary;
-
-    import org.osflash.signals.*;
-
-    import flash.utils.Dictionary;
     import flash.utils.describeType;
-
+    
+    import org.osflash.signals.*;
     import org.robotlegs.core.IInjector;
     import org.robotlegs.core.ISignalCommandMap;
 
@@ -25,7 +22,7 @@ package org.robotlegs.base
             verifiedCommandClasses = new Dictionary( false );
         }
 
-        public function mapSignal(signal:ISignal, commandClass:Class, oneShot:Boolean = false):void
+        public function mapSignal(signal:ISignal, commandClass:Class, oneShot:Boolean = false, argumentNames:Array=null):void
         {
             verifyCommandClass( commandClass );
             if ( hasSignalCommand( signal, commandClass ) )
@@ -33,17 +30,17 @@ package org.robotlegs.base
             var signalCommandMap:Dictionary = signalMap[signal] = signalMap[signal] || new Dictionary( false );
             var callback:Function = function(a:* = null, b:* = null, c:* = null, d:* = null, e:* = null, f:* = null, g:* = null):void
             {
-                routeSignalToCommand( signal, arguments, commandClass, oneShot );
+                routeSignalToCommand( signal, arguments, commandClass, oneShot, argumentNames );
             };
 
             signalCommandMap[commandClass] = callback;
             signal.add( callback );
         }
-
-        public function mapSignalClass(signalClass:Class, commandClass:Class, oneShot:Boolean = false):ISignal
+		
+        public function mapSignalClass(signalClass:Class, commandClass:Class, oneShot:Boolean = false, argumentNames:Array=null):ISignal
         {
             var signal:ISignal = getSignalClassInstance( signalClass );
-            mapSignal( signal, commandClass, oneShot );
+            mapSignal( signal, commandClass, oneShot, argumentNames );
             return signal;
         }
 
@@ -83,22 +80,71 @@ package org.robotlegs.base
 			unmapSignal(getSignalClassInstance(signalClass), commandClass);
 		}
 
-        protected function routeSignalToCommand(signal:ISignal, valueObjects:Array, commandClass:Class, oneshot:Boolean):void
+		protected function mapValues(valueObjects:Array, valueClasses:Array, argumentNames:Array):void
+		{
+			var i:int;
+			var value:Object;
+			if(valueClasses && argumentNames)
+			{
+				if(valueObjects.length != valueClasses.length || valueObjects.length != argumentNames.length)
+					throw new Error("Unequal numbers of arguments");
+				for(i=0;i<valueObjects.length;i++)
+				{
+					injector.mapValue( valueClasses[i], valueObjects[i], argumentNames[i] );
+				}
+			}
+			else if(valueClasses)
+			{
+				if(valueObjects.length != valueClasses.length)
+					throw new Error("Unequal numbers of arguments");
+				for(i=0;i<valueClasses.length;i++)
+				{
+					injector.mapValue( valueClasses[i], valueObjects[i] );
+				}
+			}
+			else
+			{
+				for each( value in valueObjects )
+				{
+					injector.mapValue( value.constructor, value );
+				}
+			}
+		}
+		
+		protected function unmapValues(valueObjects:Array, valueClasses:Array, argumentNames:Array):void
+		{
+			var i:int;
+			var value:Object;
+			if(valueClasses && argumentNames)
+			{
+				for(i=0;i<valueClasses.length;i++)
+				{
+					injector.unmap( valueClasses[i], argumentNames[i] );
+				}
+			}
+			else if(valueClasses)
+			{
+				for(i=0;i<valueClasses.length;i++)
+				{
+					injector.unmap( valueClasses[i] );
+				}
+			}
+			else
+			{
+				for each( value in valueObjects )
+				{
+					injector.unmap( value.constructor );
+				}
+			}
+		}
+		
+        protected function routeSignalToCommand(signal:ISignal, valueObjects:Array, commandClass:Class, oneshot:Boolean, argumentNames:Array):void
         {
-			// NOTE: Assumes no duplicated classes in valueObjects,
-			// and none of them are previously mapped.
-            var value:Object;
-            for each( value in valueObjects )
-            {
-                injector.mapValue( value.constructor, value );
-            }
-
-            var command:Object = injector.instantiate( commandClass );
-
-            for each( value in valueObjects )
-            {
-                injector.unmap( value.constructor );
-            }
+			mapValues( valueObjects, signal.valueClasses, argumentNames );
+			
+			var command:Object = injector.instantiate( commandClass );
+			
+			unmapValues( valueObjects, signal.valueClasses, argumentNames );
 
             command.execute( );
 
