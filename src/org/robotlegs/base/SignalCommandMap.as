@@ -93,7 +93,7 @@ package org.robotlegs.base
 					injector.mapValue( valueClasses[i], valueObjects[i], argumentNames[i] );
 				}
 			}
-			else if(valueClasses)
+			else if(valueClasses && valueClasses.length > 0)
 			{
 				if(valueObjects.length != valueClasses.length)
 					throw new Error("Unequal numbers of arguments");
@@ -122,7 +122,7 @@ package org.robotlegs.base
 					injector.unmap( valueClasses[i], argumentNames[i] );
 				}
 			}
-			else if(valueClasses)
+			else if(valueClasses && valueClasses.length > 0)
 			{
 				for(i=0;i<valueClasses.length;i++)
 				{
