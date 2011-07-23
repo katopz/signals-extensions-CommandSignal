@@ -1,82 +1,89 @@
 package org.robotlegs.base
 {
-    import flash.utils.Dictionary;
-    import flash.utils.describeType;
-    
-    import org.osflash.signals.*;
-    import org.robotlegs.core.IInjector;
-    import org.robotlegs.core.ISignalCommandMap;
+	import flash.utils.Dictionary;
+	import flash.utils.describeType;
 
-    public class SignalCommandMap implements ISignalCommandMap
-    {
-        protected var injector:IInjector;
-        protected var signalMap:Dictionary;
-        protected var signalClassMap:Dictionary;
-        protected var verifiedCommandClasses:Dictionary;
+	import org.osflash.signals.*;
+	import org.robotlegs.core.IInjector;
+	import org.robotlegs.core.ISignalCommandMap;
 
-        public function SignalCommandMap(injector:IInjector)
-        {
-            this.injector = injector;
-            signalMap = new Dictionary( false );
-            signalClassMap = new Dictionary( false );
-            verifiedCommandClasses = new Dictionary( false );
-        }
+	public class SignalCommandMap implements ISignalCommandMap
+	{
+		protected var _injector:IInjector;
+		protected var _signalMap:Dictionary;
+		protected var _signalClassMap:Dictionary;
+		protected var _verifiedCommandClasses:Dictionary;
 
-        public function mapSignal(signal:ISignal, commandClass:Class, oneShot:Boolean = false, argumentNames:Array=null):void
-        {
-            verifyCommandClass( commandClass );
-            if ( hasSignalCommand( signal, commandClass ) )
-                return;
-            var signalCommandMap:Dictionary = signalMap[signal] = signalMap[signal] || new Dictionary( false );
-            var callback:Function = function(a:* = null, b:* = null, c:* = null, d:* = null, e:* = null, f:* = null, g:* = null):void
-            {
-                routeSignalToCommand( signal, arguments, commandClass, oneShot, argumentNames );
-            };
+		public function SignalCommandMap(injector:IInjector)
+		{
+			_injector = injector;
+			_signalMap = new Dictionary(false);
+			_signalClassMap = new Dictionary(false);
+			_verifiedCommandClasses = new Dictionary(false);
+		}
 
-            signalCommandMap[commandClass] = callback;
-            signal.add( callback );
-        }
-		
-        public function mapSignalClass(signalClass:Class, commandClass:Class, oneShot:Boolean = false, argumentNames:Array=null):ISignal
-        {
-            var signal:ISignal = getSignalClassInstance( signalClass );
-            mapSignal( signal, commandClass, oneShot, argumentNames );
-            return signal;
-        }
+		public function mapSignal(signal:ISignal, commandClass:Class, oneShot:Boolean = false, argumentNames:Array = null):void
+		{
+			verifyCommandClass(commandClass);
+			if (hasSignalCommand(signal, commandClass))
+				return;
 
-        private function getSignalClassInstance(signalClass:Class):ISignal
-        {
-            return ISignal(signalClassMap[signalClass]) || createSignalClassInstance(signalClass);
-        }
+			var signalCommandMap:Dictionary = _signalMap[signal] = _signalMap[signal] || new Dictionary(false);
+			var callback:Function = function(a:* = null, b:* = null, c:* = null, d:* = null, e:* = null, f:* = null, g:* = null):void
+			{
+				routeSignalToCommand(signal, arguments, commandClass, oneShot, argumentNames);
+			};
 
-        private function createSignalClassInstance(signalClass:Class):ISignal
-        {
-            var signal:ISignal = injector.instantiate( signalClass );
-            injector.mapValue( signalClass, signal );
-            signalClassMap[signalClass] = signal;
-            return signal;
-        }
+			signalCommandMap[commandClass] = callback;
+			signal.add(callback);
+		}
 
-        public function hasSignalCommand(signal:ISignal, commandClass:Class):Boolean
-        {
-            var callbacksByCommandClass:Dictionary = signalMap[signal];
-            if ( callbacksByCommandClass == null ) return false;
-            var callback:Function = callbacksByCommandClass[commandClass];
-            return callback != null;
-        }
+		public function mapSignalClass(signalClass:Class, commandClass:Class, oneShot:Boolean = false, argumentNames:Array = null):ISignal
+		{
+			var signal:ISignal = getSignalClassInstance(signalClass);
+			mapSignal(signal, commandClass, oneShot, argumentNames);
+			return signal;
+		}
 
-        public function unmapSignal(signal:ISignal, commandClass:Class):void
-        {
-            var callbacksByCommandClass:Dictionary = signalMap[signal];
-            if ( callbacksByCommandClass == null ) return;
-            var callback:Function = callbacksByCommandClass[commandClass];
-            if ( callback == null ) return;
-            signal.remove( callback );
-            delete callbacksByCommandClass[commandClass];
-        }
-		
-        public function unmapSignalClass(signalClass:Class, commandClass:Class):void
-        {
+		private function getSignalClassInstance(signalClass:Class):ISignal
+		{
+			return ISignal(_signalClassMap[signalClass]) || createSignalClassInstance(signalClass);
+		}
+
+		private function createSignalClassInstance(signalClass:Class):ISignal
+		{
+			var signal:ISignal = _injector.instantiate(signalClass);
+			_injector.mapValue(signalClass, signal);
+			_signalClassMap[signalClass] = signal;
+			return signal;
+		}
+
+		public function hasSignalCommand(signal:ISignal, commandClass:Class):Boolean
+		{
+			var callbacksByCommandClass:Dictionary = _signalMap[signal];
+			if (callbacksByCommandClass == null)
+				return false;
+			
+			var callback:Function = callbacksByCommandClass[commandClass];
+			return callback != null;
+		}
+
+		public function unmapSignal(signal:ISignal, commandClass:Class):void
+		{
+			var callbacksByCommandClass:Dictionary = _signalMap[signal];
+			if (callbacksByCommandClass == null)
+				return;
+
+			var callback:Function = callbacksByCommandClass[commandClass];
+			if (callback == null)
+				return;
+
+			signal.remove(callback);
+			delete callbacksByCommandClass[commandClass];
+		}
+
+		public function unmapSignalClass(signalClass:Class, commandClass:Class):void
+		{
 			unmapSignal(getSignalClassInstance(signalClass), commandClass);
 		}
 
@@ -84,84 +91,78 @@ package org.robotlegs.base
 		{
 			var i:int;
 			var value:Object;
-			if(valueClasses && argumentNames)
+			if (valueClasses && argumentNames)
 			{
-				if(valueObjects.length != valueClasses.length || valueObjects.length != argumentNames.length)
+				if (valueObjects.length != valueClasses.length || valueObjects.length != argumentNames.length)
 					throw new Error("Unequal numbers of arguments");
-				for(i=0;i<valueObjects.length;i++)
-				{
-					injector.mapValue( valueClasses[i], valueObjects[i], argumentNames[i] );
-				}
+
+				var valueObjects_length:int = valueObjects.length;
+				for (i = 0; i < valueObjects_length; i++)
+					_injector.mapValue(valueClasses[int(i)], valueObjects[int(i)], argumentNames[int(i)]);
 			}
-			else if(valueClasses && valueClasses.length > 0)
+			else if (valueClasses && valueClasses.length > 0)
 			{
-				if(valueObjects.length != valueClasses.length)
+				if (valueObjects.length != valueClasses.length)
 					throw new Error("Unequal numbers of arguments");
-				for(i=0;i<valueClasses.length;i++)
-				{
-					injector.mapValue( valueClasses[i], valueObjects[i] );
-				}
+
+				var valueClasses_length:uint = valueClasses.length;
+				for (i = 0; i < valueClasses_length; i++)
+					_injector.mapValue(valueClasses[int(i)], valueObjects[int(i)]);
 			}
 			else
 			{
-				for each( value in valueObjects )
-				{
-					injector.mapValue( value.constructor, value );
-				}
+				for each (value in valueObjects)
+					_injector.mapValue(value.constructor, value);
 			}
 		}
-		
+
 		protected function unmapValues(valueObjects:Array, valueClasses:Array, argumentNames:Array):void
 		{
 			var i:int;
 			var value:Object;
-			if(valueClasses && argumentNames)
+			var valueClasses_length:uint;
+			if (valueClasses && argumentNames)
 			{
-				for(i=0;i<valueClasses.length;i++)
-				{
-					injector.unmap( valueClasses[i], argumentNames[i] );
-				}
+				valueClasses_length = valueClasses.length;
+				for (i = 0; i < valueClasses_length; i++)
+					_injector.unmap(valueClasses[int(i)], argumentNames[int(i)]);
 			}
-			else if(valueClasses && valueClasses.length > 0)
+			else if (valueClasses && valueClasses.length > 0)
 			{
-				for(i=0;i<valueClasses.length;i++)
-				{
-					injector.unmap( valueClasses[i] );
-				}
+				valueClasses_length = valueClasses.length;
+				for (i = 0; i < valueClasses_length; i++)
+					_injector.unmap(valueClasses[int(i)]);
 			}
 			else
 			{
-				for each( value in valueObjects )
-				{
-					injector.unmap( value.constructor );
-				}
+				for each (value in valueObjects)
+					_injector.unmap(value.constructor);
 			}
 		}
-		
-        protected function routeSignalToCommand(signal:ISignal, valueObjects:Array, commandClass:Class, oneshot:Boolean, argumentNames:Array):void
-        {
-			mapValues( valueObjects, signal.valueClasses, argumentNames );
-			
-			var command:Object = injector.instantiate( commandClass );
-			
-			unmapValues( valueObjects, signal.valueClasses, argumentNames );
 
-            command.execute( );
+		protected function routeSignalToCommand(signal:ISignal, valueObjects:Array, commandClass:Class, oneshot:Boolean, argumentNames:Array):void
+		{
+			mapValues(valueObjects, signal.valueClasses, argumentNames);
 
-            if ( oneshot )
-            {
-                unmapSignal( signal, commandClass );
-            }
-        }
+			var command:Object = _injector.instantiate(commandClass);
 
-        protected function verifyCommandClass(commandClass:Class):void
-        {
-            if ( verifiedCommandClasses[commandClass] ) return;
-			if (describeType( commandClass ).factory.method.(@name == "execute").length() != 1)
-			{
-				throw new ContextError( ContextError.E_COMMANDMAP_NOIMPL + ' - ' + commandClass );
-			}
-			verifiedCommandClasses[commandClass] = true;
-        }
-    }
+			unmapValues(valueObjects, signal.valueClasses, argumentNames);
+
+			command.execute();
+
+			if (oneshot)
+				unmapSignal(signal, commandClass);
+		}
+
+		protected function verifyCommandClass(commandClass:Class):void
+		{
+			if (_verifiedCommandClasses[commandClass])
+				return;
+
+			if (describeType(commandClass).factory.method.(@name == "execute").length() != 1)
+				throw new ContextError(ContextError.E_COMMANDMAP_NOIMPL + ' - ' + commandClass);
+
+			_verifiedCommandClasses[commandClass] = true;
+		}
+	}
 }
