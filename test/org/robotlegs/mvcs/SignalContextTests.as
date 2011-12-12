@@ -45,7 +45,7 @@ package org.robotlegs.mvcs
 			var autoStartup:Boolean = false;
 			signalContext = new SignalContext(contextView, autoStartup);
 			
-            assertTrue(contextView.hasEventListener(Event.ADDED_TO_STAGE));
+            assertFalse(contextView.hasEventListener(Event.ADDED_TO_STAGE));
         }
     }
 }
